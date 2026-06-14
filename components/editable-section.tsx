@@ -9,6 +9,7 @@ interface EditableSectionProps {
   version?: string
   className?: string
   style?: React.CSSProperties
+  display?: "block" | "inline" | "inline-block" | "contents"
   children: React.ReactNode
 }
 
@@ -20,7 +21,9 @@ const FONT_OPTIONS = [
 ]
 const FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64]
 
-export function EditableSection({ id, version, className, style, children }: EditableSectionProps) {
+export function EditableSection({ id, version, className, style, display, children }: EditableSectionProps) {
+  const wrapperDisplay = display ?? (style?.display as "block" | "inline" | "inline-block" | "contents" | undefined)
+  const effectiveDisplay = wrapperDisplay ?? "block"
   const { editorAuthenticated } = useEditor()
   const committedContent = useCommittedContent()
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -207,7 +210,11 @@ export function EditableSection({ id, version, className, style, children }: Edi
   return (
     <>
       <div
-        style={{ transform: `translate(${offset.x}px, ${offset.y}px)`, position: "relative", overflow: "visible" }}
+        style={{
+          overflow: "visible",
+          display: effectiveDisplay,
+          ...(effectiveDisplay === "contents" ? {} : { transform: `translate(${offset.x}px, ${offset.y}px)`, position: "relative" }),
+        }}
         className="group"
       >
         {editorAuthenticated && (
@@ -232,6 +239,7 @@ export function EditableSection({ id, version, className, style, children }: Edi
           className={`${className ?? ""} ${editorAuthenticated ? "ring-1 ring-white/20 ring-offset-1" : ""}`}
           style={{
             ...style,
+            display: effectiveDisplay,
             ...(size.width ? { width: size.width } : {}),
             ...(size.height ? { height: size.height, overflow: "auto" } : {}),
           }}

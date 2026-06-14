@@ -83,7 +83,7 @@ export function EducationSection() {
               key={edu.institution}
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }} transition={{ duration: 0.6, delay: idx * 0.1 }}
-              className="grid lg:grid-cols-2 gap-12 mb-20"
+              className="grid lg:grid-cols-2 gap-12 mb-20 items-start min-w-0"
             >
               <div>
                 <EditableSection id={`edu-institution-${idx}`}>
@@ -99,17 +99,16 @@ export function EducationSection() {
                 </EditableSection>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-8 min-w-0">
                 {edu.program && (
-                  <div>
+                  <div className="min-w-0">
                     <EditableSection id={`edu-program-${idx}`}>
                       <h4 className="text-lg font-semibold text-foreground mb-3">{edu.program}</h4>
                     </EditableSection>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 pl-4 list-disc list-inside marker:text-primary text-muted-foreground">
                       {edu.degrees.map((degree, di) => (
-                        <li key={di} className="flex items-start gap-2 text-muted-foreground">
-                          <span className="text-primary mt-1.5">•</span>
-                          <EditableSection id={`edu-degree-${idx}-${di}`}><span>{degree}</span></EditableSection>
+                        <li key={di} className="text-sm leading-relaxed break-words">
+                          <EditableSection id={`edu-degree-${idx}-${di}`} style={{ display: "contents" }}><span>{degree}</span></EditableSection>
                         </li>
                       ))}
                     </ul>
@@ -117,36 +116,32 @@ export function EducationSection() {
                 )}
 
                 {edu.achievements && edu.achievements.length > 0 && (
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 pl-4 list-disc list-inside text-foreground font-medium">
                     {edu.achievements.map((a, ai) => (
-                      <li key={ai} className="flex items-start gap-2 text-foreground font-medium">
-                        <span className="text-primary mt-1.5">•</span>
-                        <EditableSection id={`edu-achievement-${idx}-${ai}`}><span>{a}</span></EditableSection>
+                      <li key={ai} className="text-sm leading-relaxed break-words">
+                        <EditableSection id={`edu-achievement-${idx}-${ai}`} style={{ display: "contents" }}><span>{a}</span></EditableSection>
                       </li>
                     ))}
                   </ul>
                 )}
 
                 {edu.activities && edu.activities.length > 0 && (
-                  <div>
+                  <div className="space-y-4">
                     <EditableSection id={`edu-activities-heading-${idx}`}>
-                      <h4 className="text-lg font-semibold text-foreground mb-4">Activities:</h4>
+                      <h4 className="text-lg font-semibold text-foreground mb-3" style={{ transform: 'translateY(-510px)' }}>Activities</h4>
                     </EditableSection>
-                    <ul className="space-y-4">
+                    <div className="space-y-4">
                       {edu.activities.map((act, ai) => (
-                        <li key={ai} className="flex items-start gap-2">
-                          <span className="text-primary mt-1.5">•</span>
-                          <div>
-                            <EditableSection id={`edu-act-title-${idx}-${ai}`}>
-                              <span className="text-primary font-medium">{act.title}:</span>
-                            </EditableSection>
-                            <EditableSection id={`edu-act-desc-${idx}-${ai}`}>
-                              <span className="text-muted-foreground"> {act.description}</span>
-                            </EditableSection>
-                          </div>
-                        </li>
+                        <div key={ai} className="rounded-2xl border border-border/40 bg-background/70 p-4">
+                          <EditableSection id={`edu-act-title-${idx}-${ai}`}>
+                            <p className="text-primary font-medium text-sm leading-snug">{act.title}</p>
+                          </EditableSection>
+                          <EditableSection id={`edu-act-desc-${idx}-${ai}`}>
+                            <p className="text-muted-foreground text-sm leading-relaxed mt-2">{act.description}</p>
+                          </EditableSection>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
