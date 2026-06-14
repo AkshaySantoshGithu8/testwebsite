@@ -28,6 +28,7 @@ export function EditableSection({ id, version, className, style, children }: Edi
   const savedRangeRef = useRef<Range | null>(null)
   // Track whether we've seeded the DOM from localStorage already
   const seededRef = useRef(false)
+  const appliedCommittedHtmlRef = useRef<string | null>(null)
 
   const [toolbarVisible, setToolbarVisible] = useState(false)
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 })
@@ -43,24 +44,29 @@ export function EditableSection({ id, version, className, style, children }: Edi
   // On mount: overwrite innerHTML with saved content if it exists.
   // After this, we never touch innerHTML via React — only via ref.
   useEffect(() => {
-    if (seededRef.current || !sectionRef.current) return
-    seededRef.current = true
+    if (!sectionRef.current) return
 
+    const htmlKey = `editable-section-${id}`
     const versionKey = `editable-section-version-${id}`
-    const savedVersion = window.localStorage.getItem(versionKey)
 
     // Priority: 1) committed JSON file  2) localStorage  3) default JSX children
-    const committedHtml = committedContent[`editable-section-${id}`]
-    if (committedHtml) {
+    const committedHtml = committedContent[htmlKey]
+    if (committedHtml && appliedCommittedHtmlRef.current !== committedHtml) {
       sectionRef.current.innerHTML = committedHtml
-      // Sync to localStorage so edits layer on top
-      window.localStorage.setItem(`editable-section-${id}`, committedHtml)
-    } else if (version && savedVersion !== version) {
-      window.localStorage.removeItem(`editable-section-${id}`)
-      window.localStorage.setItem(versionKey, version)
-    } else {
-      const saved = window.localStorage.getItem(`editable-section-${id}`)
-      if (saved) sectionRef.current.innerHTML = saved
+      window.localStorage.setItem(htmlKey, committedHtml)
+      appliedCommittedHtmlRef.current = committedHtml
+      seededRef.current = true
+    } else if (!seededRef.current) {
+      seededRef.current = true
+      const savedVersion = window.localStorage.getItem(versionKey)
+
+      if (version && savedVersion !== version) {
+        window.localStorage.removeItem(htmlKey)
+        window.localStorage.setItem(versionKey, version)
+      } else {
+        const saved = window.localStorage.getItem(htmlKey)
+        if (saved) sectionRef.current.innerHTML = saved
+      }
     }
 
     const pos = committedContent[`editable-section-pos-${id}`] ?? window.localStorage.getItem(`editable-section-pos-${id}`)
