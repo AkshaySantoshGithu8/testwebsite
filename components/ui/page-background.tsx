@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
+import { useCommittedContent } from "@/components/committed-content-context"
 
 function pageStorageKey(pathname: string) {
   const slug = pathname === "/" ? "home" : pathname.replace(/^\//, "").replace(/\//g, "-")
@@ -10,33 +11,22 @@ function pageStorageKey(pathname: string) {
 
 export function PageBackground() {
   const pathname = usePathname() ?? "/"
+  const committedContent = useCommittedContent()
   const [url, setUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const key = pageStorageKey(pathname)
 
-    async function load() {
-      // 1. Try committed JSON file first
-      try {
-        const res = await fetch("/editor-content.json", { cache: "no-store" })
-        if (res.ok) {
-          const data = await res.json()
-          if (data[key]) {
-            setUrl(data[key])
-            // Sync to localStorage so live edits layer on top
-            window.localStorage.setItem(key, data[key])
-            return
-          }
-        }
-      } catch {}
-
-      // 2. Fall back to localStorage
-      const saved = window.localStorage.getItem(key)
-      setUrl(saved ?? null)
+    const committedUrl = committedContent[key]
+    if (committedUrl) {
+      setUrl(committedUrl)
+      window.localStorage.setItem(key, committedUrl)
+      return
     }
 
-    load()
-  }, [pathname])
+    const saved = window.localStorage.getItem(key)
+    setUrl(saved ?? null)
+  }, [pathname, committedContent])
 
   // Same-tab live updates from editor panel
   useEffect(() => {

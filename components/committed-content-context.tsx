@@ -13,7 +13,7 @@ export function CommittedContentProvider({ children }: { children: React.ReactNo
   const [snapshot, setSnapshot] = useState<EditorSnapshot>({})
 
   useEffect(() => {
-    fetch("/editor-content.json", { cache: "no-store" })
+    fetch("/api/editor/content", { cache: "no-store" })
       .then((r) => r.ok ? r.json() : {})
       .then(setSnapshot)
       .catch(() => setSnapshot({}))

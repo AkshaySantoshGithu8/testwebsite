@@ -1,12 +1,10 @@
 "use client"
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
-import { downloadSnapshot } from "./editor-export"
+import { downloadSnapshot, isEditorStorageKey, saveSnapshotToServer } from "./editor-export"
 import { usePathname } from "next/navigation"
 import { useCommittedContent } from "./committed-content-context"
 
-const EDITOR_PASSWORD = "akshay-edit-pass"
-const EDITOR_AUTH_KEY = "site-editor-authenticated"
 const EDITOR_BACKGROUND_OPTION_KEY = "site-editor-background-option"
 const EDITOR_BACKGROUND_URL_KEY = "site-editor-background-url"
 const EDITOR_DEFAULT_BACKGROUND = "/hero-bg.jpg"
@@ -85,7 +83,7 @@ interface EditorContextValue {
   sectionTextBoxes: Record<string, SectionTextBox[]>
   pageImages: PageImage[]
   togglePanel: () => void
-  authenticate: (password: string) => boolean
+  authenticate: (password: string) => Promise<boolean>
   logout: () => void
   setBackgroundUrl: (url: string) => void
   setBackgroundOption: (option: string) => void
@@ -121,10 +119,15 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   const [sectionTextBoxes, setSectionTextBoxes] = useState<Record<string, SectionTextBox[]>>({})
   const [pageImages, setPageImages] = useState<PageImage[]>([])
 
+  useEffect(() => {
+    fetch("/api/editor/auth", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : { authenticated: false })
+      .then((data) => setEditorAuthenticated(Boolean(data.authenticated)))
+      .catch(() => setEditorAuthenticated(false))
+  }, [])
+
   // Load global settings once
   useEffect(() => {
-    const auth = window.localStorage.getItem(EDITOR_AUTH_KEY)
-    if (auth === EDITOR_PASSWORD) setEditorAuthenticated(true)
     const savedOption =
       committedContent[EDITOR_BACKGROUND_OPTION_KEY] ??
       window.localStorage.getItem(EDITOR_BACKGROUND_OPTION_KEY)
@@ -189,18 +192,52 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, pageImages])
 
   useEffect(() => {
-    editorAuthenticated
-      ? window.localStorage.setItem(EDITOR_AUTH_KEY, EDITOR_PASSWORD)
-      : window.localStorage.removeItem(EDITOR_AUTH_KEY)
-  }, [editorAuthenticated])
-
-  useEffect(() => {
     window.localStorage.setItem(EDITOR_BACKGROUND_OPTION_KEY, backgroundOption)
   }, [backgroundOption])
 
   useEffect(() => {
     window.localStorage.setItem(EDITOR_BACKGROUND_URL_KEY, backgroundUrl)
   }, [backgroundUrl])
+
+  useEffect(() => {
+    if (!editorAuthenticated) return
+
+    let saveTimer: number | null = null
+    const scheduleSave = () => {
+      if (saveTimer) window.clearTimeout(saveTimer)
+      saveTimer = window.setTimeout(() => {
+        saveSnapshotToServer().catch((error) => {
+          console.error("Error saving editor content:", error)
+        })
+      }, 1000)
+    }
+
+    scheduleSave()
+
+    const storagePrototype = Storage.prototype
+    const originalSetItem = storagePrototype.setItem
+    const originalRemoveItem = storagePrototype.removeItem
+
+    storagePrototype.setItem = function (key: string, value: string) {
+      originalSetItem.call(this, key, value)
+      if (this === window.localStorage && isEditorStorageKey(String(key))) {
+        scheduleSave()
+      }
+    }
+
+    storagePrototype.removeItem = function (key: string) {
+      originalRemoveItem.call(this, key)
+      if (this === window.localStorage && isEditorStorageKey(String(key))) {
+        scheduleSave()
+      }
+    }
+
+    return () => {
+      if (saveTimer) window.clearTimeout(saveTimer)
+      storagePrototype.setItem = originalSetItem
+      storagePrototype.removeItem = originalRemoveItem
+    }
+  }, [editorAuthenticated])
 
   const setPageBackgroundUrl = (url: string | null) => {
     setPageBackgroundUrlState(url)
@@ -231,19 +268,38 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
   const togglePanel = () => setEditorPanelOpen((o) => !o)
 
-  const authenticate = (password: string) => {
-    if (password === EDITOR_PASSWORD) {
+  const authenticate = async (password: string) => {
+    try {
+      const response = await fetch("/api/editor/auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setPasswordError(data.error || "Incorrect password")
+        return false
+      }
+
       setEditorAuthenticated(true)
       setPasswordError("")
       setPasswordInput("")
       setEditorPanelOpen(true)
+      void saveSnapshotToServer().catch((error) => {
+        console.error("Error saving editor content:", error)
+      })
       return true
+    } catch {
+      setPasswordError("Unable to authenticate")
+      return false
     }
-    setPasswordError("Incorrect password")
-    return false
   }
 
   const logout = () => {
+    void fetch("/api/editor/auth", { method: "DELETE" }).catch(() => {})
     setEditorAuthenticated(false)
     setEditorPanelOpen(false)
     setPasswordInput("")
@@ -359,7 +415,7 @@ function EditorPanel({
   editorAuthenticated: boolean
   editorPanelOpen: boolean
   togglePanel: () => void
-  authenticate: (password: string) => boolean
+  authenticate: (password: string) => Promise<boolean>
   logout: () => void
   passwordInput: string
   setPasswordInput: (v: string) => void
@@ -620,7 +676,7 @@ function EditorPanel({
               </div>
             </>
           ) : (
-            <form onSubmit={(e) => { e.preventDefault(); authenticate(passwordInput) }} className="space-y-3">
+            <form onSubmit={async (e) => { e.preventDefault(); await authenticate(passwordInput) }} className="space-y-3">
               <div className="text-sm uppercase tracking-[0.3em] text-primary/90">Editor login</div>
               <label className="block">
                 <span className="text-xs uppercase tracking-[0.2em] text-white/70">Password</span>

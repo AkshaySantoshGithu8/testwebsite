@@ -18,16 +18,35 @@ export const EDITOR_KEY_PREFIXES = [
 
 export type EditorSnapshot = Record<string, string>
 
+export function isEditorStorageKey(key: string) {
+  return EDITOR_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
+}
+
 /** Collect every editor key from localStorage into a plain object */
 export function exportSnapshot(): EditorSnapshot {
   const snapshot: EditorSnapshot = {}
   for (let i = 0; i < window.localStorage.length; i++) {
     const key = window.localStorage.key(i)!
-    if (EDITOR_KEY_PREFIXES.some((p) => key.startsWith(p))) {
+    if (isEditorStorageKey(key)) {
       snapshot[key] = window.localStorage.getItem(key)!
     }
   }
   return snapshot
+}
+
+export async function saveSnapshotToServer(snapshot = exportSnapshot()) {
+  const response = await fetch("/api/editor/content", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(snapshot),
+  })
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to save editor content")
+  }
 }
 
 /** Download the snapshot as a JSON file */
