@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient, hasSupabaseConfig } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import type { Project } from "@/lib/supabase/types"
 import { ProjectDetailClient } from "./project-detail-client"
@@ -173,21 +173,30 @@ interface PageProps {
 }
 
 async function getProject(slug: string): Promise<Project | null> {
-  const supabase = await createClient()
-  
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("slug", slug)
-    .single()
+  const sampleProject = sampleProjects.find(p => p.slug === slug)
 
-  if (error || !data) {
-    // Check sample projects fallback
-    const sampleProject = sampleProjects.find(p => p.slug === slug)
+  if (!hasSupabaseConfig()) {
     return sampleProject || null
   }
 
-  return data as Project
+  const supabase = await createClient()
+
+  try {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("slug", slug)
+      .single()
+
+    if (error || !data) {
+      return sampleProject || null
+    }
+
+    return data as Project
+  } catch (error) {
+    console.error("Unexpected error loading project:", error)
+    return sampleProject || null
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
