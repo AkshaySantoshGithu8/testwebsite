@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { downloadSnapshot } from "./editor-export"
 import { usePathname } from "next/navigation"
+import { useCommittedContent } from "./committed-content-context"
 
 const EDITOR_PASSWORD = "akshay-edit-pass"
 const EDITOR_AUTH_KEY = "site-editor-authenticated"
@@ -108,6 +109,7 @@ export function useEditor() {
 
 export function EditorProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/"
+  const committedContent = useCommittedContent()
   const [editorAuthenticated, setEditorAuthenticated] = useState(false)
   const [editorPanelOpen, setEditorPanelOpen] = useState(false)
   const [passwordInput, setPasswordInput] = useState("")
@@ -123,16 +125,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const auth = window.localStorage.getItem(EDITOR_AUTH_KEY)
     if (auth === EDITOR_PASSWORD) setEditorAuthenticated(true)
-    const savedOption = window.localStorage.getItem(EDITOR_BACKGROUND_OPTION_KEY)
+    const savedOption =
+      committedContent[EDITOR_BACKGROUND_OPTION_KEY] ??
+      window.localStorage.getItem(EDITOR_BACKGROUND_OPTION_KEY)
     if (savedOption) setBackgroundOption(savedOption)
-    const savedUrl = window.localStorage.getItem(EDITOR_BACKGROUND_URL_KEY)
+    const savedUrl =
+      committedContent[EDITOR_BACKGROUND_URL_KEY] ??
+      window.localStorage.getItem(EDITOR_BACKGROUND_URL_KEY)
     if (savedUrl) setBackgroundUrl(savedUrl)
-  }, [])
+  }, [committedContent])
 
   // Load per-page data whenever pathname changes
   useEffect(() => {
     // Page background (all pages)
-    const savedPageBg = window.localStorage.getItem(pageStorageKey(pathname))
+    const pageKey = pageStorageKey(pathname)
+    const savedPageBg = committedContent[pageKey] ?? window.localStorage.getItem(pageKey)
     setPageBackgroundUrlState(savedPageBg ?? null)
 
     if (pathname !== "/") {
@@ -144,21 +151,24 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
     const loadedSections: Record<string, string> = {}
     HOME_SECTION_OPTIONS.forEach(({ value }) => {
-      const saved = window.localStorage.getItem(sectionStorageKey(pathname, value))
+      const key = sectionStorageKey(pathname, value)
+      const saved = committedContent[key] ?? window.localStorage.getItem(key)
       if (saved) loadedSections[value] = saved
     })
     setSectionBackgrounds(loadedSections)
 
     const loadedBoxes: Record<string, SectionTextBox[]> = {}
     HOME_SECTION_OPTIONS.forEach(({ value }) => {
-      const saved = window.localStorage.getItem(sectionTextBoxesStorageKey(pathname, value))
+      const key = sectionTextBoxesStorageKey(pathname, value)
+      const saved = committedContent[key] ?? window.localStorage.getItem(key)
       try { loadedBoxes[value] = saved ? JSON.parse(saved) : [] } catch { loadedBoxes[value] = [] }
     })
     setSectionTextBoxes(loadedBoxes)
 
-    const savedImages = window.localStorage.getItem(pageImagesStorageKey(pathname))
+    const imagesKey = pageImagesStorageKey(pathname)
+    const savedImages = committedContent[imagesKey] ?? window.localStorage.getItem(imagesKey)
     try { setPageImages(savedImages ? JSON.parse(savedImages) : []) } catch { setPageImages([]) }
-  }, [pathname])
+  }, [pathname, committedContent])
 
   // Persist section text boxes
   useEffect(() => {

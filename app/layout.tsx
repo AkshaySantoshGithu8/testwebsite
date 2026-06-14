@@ -38,13 +38,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable} bg-background`}>
       <body className="font-sans antialiased">
-        <EditorProvider>
-          <CommittedContentProvider>
+        <CommittedContentProvider>
+          <EditorProvider>
           <PageBackground />
           <CustomSections />
           {children}
-          </CommittedContentProvider>
-        </EditorProvider>
+          </EditorProvider>
+        </CommittedContentProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

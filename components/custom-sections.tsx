@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useEditor } from "./editor-context"
+import { useCommittedContent } from "./committed-content-context"
 
 const FONT_OPTIONS = [
   { label: "Default", value: "inherit" },
@@ -303,12 +304,27 @@ function Section({
 // ─── Manager ─────────────────────────────────────────────────────────────────
 export function CustomSections() {
   const { editorAuthenticated } = useEditor()
+  const committedContent = useCommittedContent()
   const pathname = usePathname() ?? "/"
   const [sections, setSections] = useState<CustomSection[]>([])
 
   useEffect(() => {
+    const key = storageKey(pathname)
+    const committedSections = committedContent[key]
+
+    if (committedSections) {
+      try {
+        const parsed = JSON.parse(committedSections)
+        setSections(parsed)
+        window.localStorage.setItem(key, committedSections)
+        return
+      } catch {
+        // Fall through to local edits if the committed snapshot is malformed.
+      }
+    }
+
     setSections(load(pathname))
-  }, [pathname])
+  }, [pathname, committedContent])
 
   const persist = (updated: CustomSection[]) => {
     setSections(updated)

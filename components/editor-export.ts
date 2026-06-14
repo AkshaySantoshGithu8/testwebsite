@@ -4,10 +4,16 @@ export const EDITOR_KEY_PREFIXES = [
   "editable-section-pos-",
   "editable-section-size-",
   "editable-section-version-",
+  "editable-image-src-",
+  "editable-image-pos-",
+  "editable-image-size-",
   "page-bg-override-",
   "page-images-override-",
   "section-bg-override-",
+  "section-textboxes-override-",
   "custom-sections-",
+  "hero-editor-",
+  "site-editor-background-",
 ]
 
 export type EditorSnapshot = Record<string, string>

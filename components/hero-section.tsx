@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "framer-motion"
 import { ChevronDown } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useEditor } from "./editor-context"
+import { useCommittedContent } from "./committed-content-context"
 
 const HERO_EDITOR_SUBTITLE_KEY = "hero-editor-subtitle"
 const HERO_EDITOR_TITLE_KEY = "hero-editor-title"
@@ -25,6 +26,7 @@ export function HeroSection() {
   const opacity = useTransform(scrollY, [0, 400], [1, 0])
   const scale = useTransform(scrollY, [0, 400], [1, 1.1])
   const { editorAuthenticated, sectionBackgrounds } = useEditor()
+  const committedContent = useCommittedContent()
 
   const [subtitleText, setSubtitleText] = useState("Hello, it's me")
   const [titleText, setTitleText] = useState("Akshay Santosh")
@@ -39,15 +41,17 @@ export function HeroSection() {
   const [dragging, setDragging] = useState<"subtitle" | "title" | null>(null)
   const dragLast = useRef({ x: 0, y: 0 })
 
-  // Load saved editor state from localStorage.
+  // Load saved editor state from committed JSON first, then localStorage.
   useEffect(() => {
-    const savedSubtitle = window.localStorage.getItem(HERO_EDITOR_SUBTITLE_KEY)
+    const savedValue = (key: string) => committedContent[key] ?? window.localStorage.getItem(key)
+
+    const savedSubtitle = savedValue(HERO_EDITOR_SUBTITLE_KEY)
     if (savedSubtitle) setSubtitleText(savedSubtitle)
 
-    const savedTitle = window.localStorage.getItem(HERO_EDITOR_TITLE_KEY)
+    const savedTitle = savedValue(HERO_EDITOR_TITLE_KEY)
     if (savedTitle) setTitleText(savedTitle)
 
-    const savedSubtitleOffset = window.localStorage.getItem(HERO_EDITOR_SUBTITLE_OFFSET_KEY)
+    const savedSubtitleOffset = savedValue(HERO_EDITOR_SUBTITLE_OFFSET_KEY)
     if (savedSubtitleOffset) {
       try {
         setSubtitleOffset(JSON.parse(savedSubtitleOffset))
@@ -56,7 +60,7 @@ export function HeroSection() {
       }
     }
 
-    const savedTitleOffset = window.localStorage.getItem(HERO_EDITOR_TITLE_OFFSET_KEY)
+    const savedTitleOffset = savedValue(HERO_EDITOR_TITLE_OFFSET_KEY)
     if (savedTitleOffset) {
       try {
         setTitleOffset(JSON.parse(savedTitleOffset))
@@ -65,30 +69,30 @@ export function HeroSection() {
       }
     }
 
-    const savedSubtitleSize = window.localStorage.getItem(HERO_EDITOR_SUBTITLE_SIZE_KEY)
+    const savedSubtitleSize = savedValue(HERO_EDITOR_SUBTITLE_SIZE_KEY)
     if (savedSubtitleSize) {
       const parsed = Number(savedSubtitleSize)
       if (!Number.isNaN(parsed)) setSubtitleSize(parsed)
     }
 
-    const savedTitleSize = window.localStorage.getItem(HERO_EDITOR_TITLE_SIZE_KEY)
+    const savedTitleSize = savedValue(HERO_EDITOR_TITLE_SIZE_KEY)
     if (savedTitleSize) {
       const parsed = Number(savedTitleSize)
       if (!Number.isNaN(parsed)) setTitleSize(parsed)
     }
 
-    const savedFont = window.localStorage.getItem(HERO_EDITOR_FONT_KEY)
+    const savedFont = savedValue(HERO_EDITOR_FONT_KEY)
     if (savedFont) setFontFamily(savedFont)
 
-    const savedBackgroundOption = window.localStorage.getItem(HERO_EDITOR_BACKGROUND_OPTION_KEY)
+    const savedBackgroundOption = savedValue(HERO_EDITOR_BACKGROUND_OPTION_KEY)
     if (savedBackgroundOption) setBackgroundOption(savedBackgroundOption)
 
-    const savedBackgroundUrl = window.localStorage.getItem(HERO_EDITOR_BACKGROUND_URL_KEY)
+    const savedBackgroundUrl = savedValue(HERO_EDITOR_BACKGROUND_URL_KEY)
     if (savedBackgroundUrl) setBackgroundUrl(savedBackgroundUrl)
 
-    const savedCustomBackground = window.localStorage.getItem(HERO_EDITOR_CUSTOM_BACKGROUND_KEY)
+    const savedCustomBackground = savedValue(HERO_EDITOR_CUSTOM_BACKGROUND_KEY)
     if (savedCustomBackground) setCustomBackgroundUrl(savedCustomBackground)
-  }, [])
+  }, [committedContent])
 
   // Persist editor state so changes survive refresh.
   useEffect(() => {

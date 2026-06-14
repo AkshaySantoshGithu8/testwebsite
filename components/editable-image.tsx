@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useEditor } from "./editor-context"
+import { useCommittedContent } from "./committed-content-context"
 
 interface EditableImageProps {
   id: string
@@ -13,6 +14,7 @@ interface EditableImageProps {
 
 export function EditableImage({ id, src: initialSrc, alt = "", className = "", style = {} }: EditableImageProps) {
   const { editorAuthenticated } = useEditor()
+  const committedContent = useCommittedContent()
   const [src, setSrc] = useState(initialSrc || "")
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [size, setSize] = useState({ width: 300, height: 200 })
@@ -23,9 +25,12 @@ export function EditableImage({ id, src: initialSrc, alt = "", className = "", s
 
   // Load saved image state
   useEffect(() => {
-    const savedSrc = window.localStorage.getItem(`editable-image-src-${id}`)
-    const savedPosition = window.localStorage.getItem(`editable-image-pos-${id}`)
-    const savedSize = window.localStorage.getItem(`editable-image-size-${id}`)
+    const srcKey = `editable-image-src-${id}`
+    const positionKey = `editable-image-pos-${id}`
+    const sizeKey = `editable-image-size-${id}`
+    const savedSrc = committedContent[srcKey] ?? window.localStorage.getItem(srcKey)
+    const savedPosition = committedContent[positionKey] ?? window.localStorage.getItem(positionKey)
+    const savedSize = committedContent[sizeKey] ?? window.localStorage.getItem(sizeKey)
 
     if (savedSrc) setSrc(savedSrc)
     if (savedPosition) {
@@ -38,7 +43,7 @@ export function EditableImage({ id, src: initialSrc, alt = "", className = "", s
         setSize(JSON.parse(savedSize))
       } catch {}
     }
-  }, [id])
+  }, [id, committedContent])
 
   // Persist image position and size
   useEffect(() => {
