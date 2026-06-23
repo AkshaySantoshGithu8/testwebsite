@@ -4,6 +4,7 @@ import {
   EDITOR_SESSION_COOKIE,
   EDITOR_SESSION_MAX_AGE_SECONDS,
   isEditorPasswordConfigured,
+  isEditorSessionSecretConfigured,
   validateEditorPassword,
   verifyEditorSessionValue,
 } from "@/lib/editor-session"
@@ -19,14 +20,14 @@ export async function GET() {
 
   return NextResponse.json({
     authenticated,
-    configured: isEditorPasswordConfigured(),
+    configured: isEditorPasswordConfigured() && isEditorSessionSecretConfigured(),
   })
 }
 
 export async function POST(request: Request) {
-  if (!isEditorPasswordConfigured()) {
+  if (!isEditorPasswordConfigured() || !isEditorSessionSecretConfigured()) {
     return NextResponse.json(
-      { error: "Editor password is not configured" },
+      { error: "Editor authentication is not fully configured" },
       { status: 503 },
     )
   }
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ authenticated: true })
   response.cookies.set(EDITOR_SESSION_COOKIE, sessionValue, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: EDITOR_SESSION_MAX_AGE_SECONDS,
@@ -61,7 +62,7 @@ export async function DELETE() {
   const response = NextResponse.json({ authenticated: false })
   response.cookies.set(EDITOR_SESSION_COOKIE, "", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 0,

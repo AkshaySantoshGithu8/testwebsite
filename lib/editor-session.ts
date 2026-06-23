@@ -4,7 +4,7 @@ export const EDITOR_SESSION_COOKIE = "site-editor-session"
 export const EDITOR_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
 function getSessionSecret() {
-  return process.env.EDITOR_SESSION_SECRET || process.env.EDITOR_PASSWORD || null
+  return process.env.EDITOR_SESSION_SECRET || null
 }
 
 function sign(value: string) {
@@ -23,6 +23,10 @@ export function isEditorPasswordConfigured() {
   return Boolean(process.env.EDITOR_PASSWORD)
 }
 
+export function isEditorSessionSecretConfigured() {
+  return Boolean(process.env.EDITOR_SESSION_SECRET)
+}
+
 export function validateEditorPassword(password: string) {
   const configuredPassword = process.env.EDITOR_PASSWORD
   if (!configuredPassword) return false
@@ -30,6 +34,9 @@ export function validateEditorPassword(password: string) {
 }
 
 export function createEditorSessionValue() {
+  const secret = getSessionSecret()
+  if (!secret) return null
+
   const expiresAt = Date.now() + EDITOR_SESSION_MAX_AGE_SECONDS * 1000
   const payload = String(expiresAt)
   const signature = sign(payload)

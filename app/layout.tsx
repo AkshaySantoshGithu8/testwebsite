@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Your Name | Portfolio',
+  title: "Akshay Santosh's Portfolio",
   description: 'Personal portfolio showcasing my accomplishments, projects, and journey',
   generator: 'v0.app',
   icons: {
